@@ -3,6 +3,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using FistVR;
 using UnityEngine;
+using System.Collections;
 
 namespace JalexInteractive
 {
@@ -23,26 +24,40 @@ namespace JalexInteractive
          */
         
         // Config Globals
-        // private ConfigEntry<UnityEngine.Vector3> headOffset; apparently no vector3s allowed
-        // private ConfigEntry<Vector3> lHandOffset;
-        // private ConfigEntry<Vector3> rHandOffset;
-        // Head
+        // Toggles
+        private ConfigEntry<bool> cfg_headEnabled;
+        private ConfigEntry<bool> cfg_lHandEnabled;
+        private ConfigEntry<bool> cfg_rHandEnabled;
+        // Offsets
         private ConfigEntry<float> cfg_headOffsetX;
         private ConfigEntry<float> cfg_headOffsetY;
         private ConfigEntry<float> cfg_headOffsetZ;
-        // Left Hand
         private ConfigEntry<float> cfg_lHandOffsetX;
         private ConfigEntry<float> cfg_lHandOffsetY;
         private ConfigEntry<float> cfg_lHandOffsetZ;
-        // Right Hand
         private ConfigEntry<float> cfg_rHandOffsetX;
         private ConfigEntry<float> cfg_rHandOffsetY;
         private ConfigEntry<float> cfg_rHandOffsetZ;
+        // Material Properties
+        private ConfigEntry<string> cfg_trailTex;
+
+        // TODO
+        // R
+        // G
+        // B
+        // A
+        // For each body part, start and end colour, ugh
 
         // GameObject Globals
-        private GameObject body;
-        private GameObject lHand;
-        private GameObject rHand;
+        public GameObject body;
+        public GameObject lHand;
+        public GameObject rHand;
+        public TrailRenderer bodyTrail;          
+        public TrailRenderer lHandTrail;          
+        public TrailRenderer rHandTrail;
+        public Material trailMat;
+        public Texture2D trailTex;
+        public bool parented = false;
         private Vector3 bodyOffset;
         private Vector3 lHandOffset;
         private Vector3 rHandOffset;
@@ -51,9 +66,12 @@ namespace JalexInteractive
             Logger = base.Logger;
             // Your plugin's ID, Name, and Version are available here.
             //Logger.LogMessage($"Hello, world! Sent from {Id} {Name} {Version}");
-            Logger.LogMessage($"PlayerTrails Version {Version} by {Name}. Initalising.");
+            Logger.LogMessage($"~ {Name} Version {Version} by Jalex Interactive - Initalising ~");
 
             // Config Setup
+            cfg_headEnabled = Config.Bind("Toggles", "Head trail On/Off", true, "Turn the head trail on or off.");
+            cfg_lHandEnabled = Config.Bind("Toggles", "Left hand trail On/Off", true, "Turn the left hand trail on or off.");
+            cfg_rHandEnabled = Config.Bind("Toggles", "Right hand On/Off", true, "Turn the right hand trail on or off.");
             cfg_headOffsetX = Config.Bind("Offsets", "Head Offset X", 0f, "Vector3 for the offset of the head/body left/right position");
             cfg_headOffsetY = Config.Bind("Offsets", "Head Offset Y", -1f, "Vector3 for the offset of the head/body up/down position");
             cfg_headOffsetZ = Config.Bind("Offsets", "Head Offset Z", 0f, "Vector3 for the offset of the head/body forward/back position");
@@ -63,18 +81,47 @@ namespace JalexInteractive
             cfg_rHandOffsetX = Config.Bind("Offsets", "Right Hand Offset X", 0f, "Vector3 for the offset of the right hand left/right position");
             cfg_rHandOffsetY = Config.Bind("Offsets", "Right Hand Offset Y", 0f, "Vector3 for the offset of the right hand up/down position");
             cfg_rHandOffsetZ = Config.Bind("Offsets", "Right Hand Offset Z", -0.21f, "Vector3 for the offset of the right hand forward/back position"); // Might need to change these as this is controlling up/down visuallyin game.
+            cfg_trailTex = Config.Bind("Material Properties", "Path to image", "textures/white.png", "Path to the image file used for the trail material");
 
             // GameObject Setup
             body = new GameObject("BodyTrail");
-            TrailRenderer bodyTrail = body.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
             lHand = new GameObject("LHandTrail");
-            TrailRenderer lHandTrail = lHand.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
             rHand = new GameObject("RHandTrail");
-            TrailRenderer rHandTrail = rHand.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
 
-            bodyTrail.transform.SetParent(GM.CurrentPlayerBody.Head, false);
-            lHandTrail.transform.SetParent(GM.CurrentPlayerBody.LeftHand, false);
-            rHandTrail.transform.SetParent(GM.CurrentPlayerBody.RightHand, false);
+            // Material Setup
+            Shader AlloyShader = Shader.Find("Alloy/Core");
+            trailMat = new Material(AlloyShader){name = "TrailMaterial"};
+            trailTex = new Texture2D(128, 128){name = "TrailTexture"};
+            // Render modes - 0 opaque - 1 Cutout - 2 Fade - 3 Transparent
+            trailMat.SetFloat("RenderingMode", 3);
+                // Metallic to 0
+            trailMat.SetFloat("_Metal", 0);
+                // Colour to white with no transparency (will be handled by trail renderer)
+            string url = "file://" + cfg_trailTex.Value;
+            Logger.LogMessage("~ Grabbing texture from: " + url + " ~");
+            TextureGrab(url);
+            trailMat.SetTexture("_MainTex", trailTex);
+            trailMat.SetColor("_Color", new Color32(255, 255, 255, 255));
+            // trailMat.SetFloat("Emission", 1);
+            // trailMat.SetTexture("_EmissionMap", trailTex);
+
+            // TrailRenderer Setup
+            bodyTrail = body.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
+            lHandTrail = lHand.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
+            rHandTrail = rHand.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
+
+            bodyTrail.startWidth = 0.2f;
+            lHandTrail.startWidth = rHandTrail.startWidth = 0.05f;
+            bodyTrail.endWidth = lHandTrail.endWidth =  rHandTrail.endWidth = 0f;
+
+            bodyTrail.time = 3f;
+            lHandTrail.time = rHandTrail.time = 1f;
+
+            bodyTrail.material = lHandTrail.material = rHandTrail.material = trailMat;
+
+            bodyTrail.startColor = lHandTrail.startColor = rHandTrail.startColor = new Color32(0, 255, 0, 255);
+            bodyTrail.endColor = lHandTrail.endColor = rHandTrail.endColor = new Color32(0, 0, 0, 0);
+
             bodyOffset.x = cfg_headOffsetX.Value;
             bodyOffset.y = cfg_headOffsetY.Value;
             bodyOffset.z = cfg_headOffsetZ.Value;
@@ -84,9 +131,40 @@ namespace JalexInteractive
             rHandOffset.x = cfg_rHandOffsetX.Value;
             rHandOffset.y = cfg_rHandOffsetY.Value;
             rHandOffset.z = cfg_rHandOffsetZ.Value;
+
+            // Turn off after setup if config says so.
+            if (!cfg_headEnabled.Value)
+            {
+                body.SetActive(false);
+            }
+            if (!cfg_lHandEnabled.Value)
+            {
+                lHand.SetActive(false);
+            }
+            if (!cfg_rHandEnabled.Value)
+            {
+                rHand.SetActive(false);
+            }
+        }
+        private void LateUpdate()
+        {
+            if (GM.CurrentPlayerBody && !parented) {
+            Logger.LogMessage("~ Binding trails to player ~");
+            bodyTrail.transform.SetParent(GM.CurrentPlayerBody.Head, false);
+            lHandTrail.transform.SetParent(GM.CurrentPlayerBody.LeftHand, false);
+            rHandTrail.transform.SetParent(GM.CurrentPlayerBody.RightHand, false);
             bodyTrail.transform.localPosition = bodyOffset;
             lHandTrail.transform.localPosition = lHandOffset;
             rHandTrail.transform.localPosition = rHandOffset;
+            parented = true;
+            }
+        }
+
+        public IEnumerator TextureGrab(string url)
+        {
+            WWW textureFile = new(url);
+            yield return textureFile;
+            textureFile.LoadImageIntoTexture(trailTex);
         }
         
         // The line below allows access to your plugin's logger from anywhere in your code, including outside of this file.

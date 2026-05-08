@@ -8,8 +8,11 @@
         <PackageProjectUrl>https://github.com/JalexInteractive/PlayerTrails</PackageProjectUrl>
     </PropertyGroup>
 
+
     <!-- Probably don't need to touch these -->
     <PropertyGroup>
+        <!-- Microsoft is dumb -->
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
         <TargetFramework>net35</TargetFramework>
         <Nullable>disable</Nullable>
         <LangVersion>latest</LangVersion>

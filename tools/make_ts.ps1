@@ -63,3 +63,5 @@ Compress-Archive -Path "${TempDir}\*" -DestinationPath $OutputPath -Force
 
 # Delete the temp folder and we're done!
 Remove-Item $TempDir -Recurse
+
+pause
