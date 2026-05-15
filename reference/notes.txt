@@ -1,0 +1,8 @@
+// Alloy/Core Only //
+// Metallic to 0
+//trailMat.SetFloat("_Metal", 0);
+// Render modes - 0 opaque - 1 Cutout - 2 Fade - 3 Transparent
+//trailMat.SetFloat("RenderingMode", 3);
+// trailMat.SetFloat("Emission", 1);
+// trailMat.SetTexture("_EmissionMap", trailTex);
+// Alloy/Core Only //

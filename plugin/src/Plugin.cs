@@ -3,7 +3,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using FistVR;
 using UnityEngine;
-using System.Collections;
+using System.IO;
 
 namespace JalexInteractive
 {
@@ -24,29 +24,33 @@ namespace JalexInteractive
          */
         
         // Config Globals
+            // String, Boolean, Byte, SByte, Int16, UInt16, Int32, UInt32, Int64, UInt64, Single, Double, Decimal, Enum, Color, Vector2, Vector3, Vector4, Quaternion
         // Toggles
         private ConfigEntry<bool> cfg_headEnabled;
         private ConfigEntry<bool> cfg_lHandEnabled;
         private ConfigEntry<bool> cfg_rHandEnabled;
         // Offsets
-        private ConfigEntry<float> cfg_headOffsetX;
-        private ConfigEntry<float> cfg_headOffsetY;
-        private ConfigEntry<float> cfg_headOffsetZ;
-        private ConfigEntry<float> cfg_lHandOffsetX;
-        private ConfigEntry<float> cfg_lHandOffsetY;
-        private ConfigEntry<float> cfg_lHandOffsetZ;
-        private ConfigEntry<float> cfg_rHandOffsetX;
-        private ConfigEntry<float> cfg_rHandOffsetY;
-        private ConfigEntry<float> cfg_rHandOffsetZ;
+        private ConfigEntry<Vector3> cfg_headOffset;
+        private ConfigEntry<Vector3> cfg_lHandOffset;
+        private ConfigEntry<Vector3> cfg_rHandOffset;
         // Material Properties
         private ConfigEntry<string> cfg_trailTex;
+        private ConfigEntry<Vector4> cfg_startColour;
+        private ConfigEntry<Vector4> cfg_endColour;
+        // Trail Properties
+        private ConfigEntry<float> cfg_bodyTime;
+        private ConfigEntry<float> cfg_lHandTime;
+        private ConfigEntry<float> cfg_rHandTime;
+        private ConfigEntry<float> cfg_bodyStartWidth;
+        private ConfigEntry<float> cfg_lHandStartWidth;
+        private ConfigEntry<float> cfg_rHandStartWidth;
+        private ConfigEntry<float> cfg_bodyEndWidth;
+        private ConfigEntry<float> cfg_lHandEndWidth;
+        private ConfigEntry<float> cfg_rHandEndWidth;
 
         // TODO
-        // R
-        // G
-        // B
-        // A
-        // For each body part, start and end colour, ugh
+        // Corner Cap vertices maybe
+        // End Cap vertices maybe
 
         // GameObject Globals
         public GameObject body;
@@ -68,69 +72,36 @@ namespace JalexInteractive
             //Logger.LogMessage($"Hello, world! Sent from {Id} {Name} {Version}");
             Logger.LogMessage($"~ {Name} Version {Version} by Jalex Interactive - Initalising ~");
 
-            // Config Setup
+            // Config Setup - These are appearing in R2 bottom to top so consider switching the order round
+                // Toggles
             cfg_headEnabled = Config.Bind("Toggles", "Head trail On/Off", true, "Turn the head trail on or off.");
             cfg_lHandEnabled = Config.Bind("Toggles", "Left hand trail On/Off", true, "Turn the left hand trail on or off.");
             cfg_rHandEnabled = Config.Bind("Toggles", "Right hand On/Off", true, "Turn the right hand trail on or off.");
-            cfg_headOffsetX = Config.Bind("Offsets", "Head Offset X", 0f, "Vector3 for the offset of the head/body left/right position");
-            cfg_headOffsetY = Config.Bind("Offsets", "Head Offset Y", -1f, "Vector3 for the offset of the head/body up/down position");
-            cfg_headOffsetZ = Config.Bind("Offsets", "Head Offset Z", 0f, "Vector3 for the offset of the head/body forward/back position");
-            cfg_lHandOffsetX = Config.Bind("Offsets", "Left Hand Offset X", 0f, "Vector3 for the offset of the left hand left/right position");
-            cfg_lHandOffsetY = Config.Bind("Offsets", "Left Hand Offset Y", 0f, "Vector3 for the offset of the left hand up/down position");
-            cfg_lHandOffsetZ = Config.Bind("Offsets", "Left Hand Offset Z", -0.21f, "Vector3 for the offset of the left hand forward/back position"); // Might need to change these as this is controlling up/down visuallyin game.
-            cfg_rHandOffsetX = Config.Bind("Offsets", "Right Hand Offset X", 0f, "Vector3 for the offset of the right hand left/right position");
-            cfg_rHandOffsetY = Config.Bind("Offsets", "Right Hand Offset Y", 0f, "Vector3 for the offset of the right hand up/down position");
-            cfg_rHandOffsetZ = Config.Bind("Offsets", "Right Hand Offset Z", -0.21f, "Vector3 for the offset of the right hand forward/back position"); // Might need to change these as this is controlling up/down visuallyin game.
-            cfg_trailTex = Config.Bind("Material Properties", "Path to image", "textures/white.png", "Path to the image file used for the trail material");
+             // Offsets
+            Vector3 defaultHeadOffset = new(0f, -1f, 0f);
+            cfg_headOffset = Config.Bind("Offsets", "Head Offset", defaultHeadOffset, "Offset for the head/body trail position (x,y,z)");
+            Vector3 defaultlHandOffset = new(0f, 0f, -0.21f);
+            cfg_lHandOffset = Config.Bind("Offsets", "Left Hand Offset", defaultlHandOffset, "Offset for the left hand trail position (x,y,z)");
+            Vector3 defaultrHandOffset = new(0f, 0f, -0.21f);
+            cfg_rHandOffset = Config.Bind("Offsets", "Right Hand Offset", defaultrHandOffset, "Offset for the right hand trail position (x,y,z)");
+                // Material Properties
+            cfg_trailTex = Config.Bind("Material Properties", "Image name", "blank.png", "Image file used for the trail texture. Add your own by adding them to the textures folder in this mods directory (png and jpg only.)");
+            Vector4 defaultWhite = new(255, 255, 255, 255);
+            cfg_startColour = Config.Bind("Material Properties", "Start Colour", defaultWhite, "Start colour of the trail");
+            Vector4 defaultInvisible = new(255, 255, 255, 0);
+            cfg_endColour = Config.Bind("Material Properties", "End Colour", defaultInvisible, "End colour of the trail");
+                // Trail Properties - Maybe consider grouping hands together for this section
+            cfg_bodyTime = Config.Bind("Trail Properties", "Body Time", 3f, "Time before the head/body trail fades (higher values mean longer trails)");
+            cfg_lHandTime = Config.Bind("Trail Properties", "Left Hand Time", 1f, "Time before the left hand trail fades (higher values mean longer trails)");
+            cfg_rHandTime = Config.Bind("Trail Properties", "Right Hand Time", 1f, "Time before the right hand trail fades (higher values mean longer trails)");
+            cfg_bodyStartWidth = Config.Bind("Trail Properties", "Body Start Width", 0.2f, "Width of the body trail at the start of the trail");
+            cfg_lHandStartWidth = Config.Bind("Trail Properties", "Left Hand Start Width", 0.05f, "Width of the left hand trail at the start of the trail");
+            cfg_rHandStartWidth = Config.Bind("Trail Properties", "Right Hand Start Width", 0.05f, "Width of the right hand trail at the start of the trail");
+            cfg_bodyEndWidth = Config.Bind("Trail Properties", "Body End Width", 0f, "Width of the body trail at the end of the trail");
+            cfg_lHandEndWidth = Config.Bind("Trail Properties", "Left Hand End Width", 0f, "Width of the left hand trail at the end of the trail");
+            cfg_rHandEndWidth = Config.Bind("Trail Properties", "Right Hand End Width", 0f, "Width of the right hand trail at the end of the trail");
 
-            // GameObject Setup
-            body = new GameObject("BodyTrail");
-            lHand = new GameObject("LHandTrail");
-            rHand = new GameObject("RHandTrail");
-
-            // Material Setup
-            Shader AlloyShader = Shader.Find("Alloy/Core");
-            trailMat = new Material(AlloyShader){name = "TrailMaterial"};
-            trailTex = new Texture2D(128, 128){name = "TrailTexture"};
-            // Render modes - 0 opaque - 1 Cutout - 2 Fade - 3 Transparent
-            trailMat.SetFloat("RenderingMode", 3);
-                // Metallic to 0
-            trailMat.SetFloat("_Metal", 0);
-                // Colour to white with no transparency (will be handled by trail renderer)
-            string url = "file://" + cfg_trailTex.Value;
-            Logger.LogMessage("~ Grabbing texture from: " + url + " ~");
-            TextureGrab(url);
-            trailMat.SetTexture("_MainTex", trailTex);
-            trailMat.SetColor("_Color", new Color32(255, 255, 255, 255));
-            // trailMat.SetFloat("Emission", 1);
-            // trailMat.SetTexture("_EmissionMap", trailTex);
-
-            // TrailRenderer Setup
-            bodyTrail = body.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
-            lHandTrail = lHand.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
-            rHandTrail = rHand.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
-
-            bodyTrail.startWidth = 0.2f;
-            lHandTrail.startWidth = rHandTrail.startWidth = 0.05f;
-            bodyTrail.endWidth = lHandTrail.endWidth =  rHandTrail.endWidth = 0f;
-
-            bodyTrail.time = 3f;
-            lHandTrail.time = rHandTrail.time = 1f;
-
-            bodyTrail.material = lHandTrail.material = rHandTrail.material = trailMat;
-
-            bodyTrail.startColor = lHandTrail.startColor = rHandTrail.startColor = new Color32(0, 255, 0, 255);
-            bodyTrail.endColor = lHandTrail.endColor = rHandTrail.endColor = new Color32(0, 0, 0, 0);
-
-            bodyOffset.x = cfg_headOffsetX.Value;
-            bodyOffset.y = cfg_headOffsetY.Value;
-            bodyOffset.z = cfg_headOffsetZ.Value;
-            lHandOffset.x = cfg_lHandOffsetX.Value;
-            lHandOffset.y = cfg_lHandOffsetY.Value;
-            lHandOffset.z = cfg_lHandOffsetZ.Value;
-            rHandOffset.x = cfg_rHandOffsetX.Value;
-            rHandOffset.y = cfg_rHandOffsetY.Value;
-            rHandOffset.z = cfg_rHandOffsetZ.Value;
+            TrailSetup();
 
             // Turn off after setup if config says so.
             if (!cfg_headEnabled.Value)
@@ -146,9 +117,66 @@ namespace JalexInteractive
                 rHand.SetActive(false);
             }
         }
+        private void TrailSetup()
+        {
+            // GameObject Setup
+            body = new GameObject("BodyTrail");
+            lHand = new GameObject("LHandTrail");
+            rHand = new GameObject("RHandTrail");
+
+            // Material Setup Unlit/Transparent
+                // Create objects
+            trailMat = new Material(Shader.Find("Alloy/Particles/Additive (Soft)")){name = "TrailMaterial"};
+            trailTex = new Texture2D(128, 128, TextureFormat.DXT5, false){name = "TrailTexture",};
+                // Grab texture from disk
+            string url = Path.GetDirectoryName(Info.Location) + "/textures/" + cfg_trailTex.Value;
+            Logger.LogMessage("~ Grabbing texture from: " + url + " ~");
+            TextureGrab(url);
+            trailMat.SetTexture("_MainTex", trailTex);
+            // Flip texture so it reads correctly in game
+            trailMat.SetTextureScale("_MainTex", new Vector2(-1,1));
+                // Colour to white with no transparency (will be handled by trail renderer)
+            trailMat.SetColor("_Color", new Color32(255, 255, 255, 255));
+                // Change illumination flags - unsure if nessecary any more
+            //trailMat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+
+            // TrailRenderer Setup
+                // Create components
+            bodyTrail = body.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
+            lHandTrail = lHand.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
+            rHandTrail = rHand.AddComponent(typeof(TrailRenderer)) as TrailRenderer;
+                // Width
+            bodyTrail.startWidth = cfg_bodyStartWidth.Value;
+            lHandTrail.startWidth = cfg_lHandStartWidth.Value;
+            rHandTrail.startWidth = cfg_rHandStartWidth.Value;
+            bodyTrail.endWidth = cfg_bodyEndWidth.Value;
+            lHandTrail.endWidth = cfg_lHandEndWidth.Value;
+            rHandTrail.endWidth = cfg_rHandEndWidth.Value;
+                // Time
+            bodyTrail.time = cfg_bodyTime.Value;
+            lHandTrail.time = cfg_lHandTime.Value;
+            rHandTrail.time = cfg_rHandTime.Value;
+                // Smoothness
+            bodyTrail.numCornerVertices = lHandTrail.numCornerVertices = rHandTrail.numCornerVertices = 5;
+                // Texture setup
+            bodyTrail.textureMode = lHandTrail.textureMode = rHandTrail.textureMode = LineTextureMode.RepeatPerSegment;
+            bodyTrail.material = lHandTrail.material = rHandTrail.material = trailMat;
+                // Colour setup
+            bodyTrail.startColor = lHandTrail.startColor = rHandTrail.startColor = V4ToColor(cfg_startColour.Value);
+            bodyTrail.endColor = lHandTrail.endColor = rHandTrail.endColor = V4ToColor(cfg_endColour.Value);
+                //Offset Setup
+            bodyOffset = cfg_headOffset.Value;
+            lHandOffset = cfg_lHandOffset.Value;
+            rHandOffset = cfg_rHandOffset.Value;
+        }
         private void LateUpdate()
         {
             if (GM.CurrentPlayerBody && !parented) {
+                if (!body)
+                {
+                    Logger.LogMessage("~ Respawning trails ~");
+                    TrailSetup();
+                }
             Logger.LogMessage("~ Binding trails to player ~");
             bodyTrail.transform.SetParent(GM.CurrentPlayerBody.Head, false);
             lHandTrail.transform.SetParent(GM.CurrentPlayerBody.LeftHand, false);
@@ -158,18 +186,33 @@ namespace JalexInteractive
             rHandTrail.transform.localPosition = rHandOffset;
             parented = true;
             }
-        }
-
-        public IEnumerator TextureGrab(string url)
+            if (!bodyTrail)
+            {
+                Logger.LogMessage("~ Trail destroyed - unparenting for respawn ~");
+                parented = false;
+            }
+        }       
+        public void TextureGrab(string url)
         {
-            WWW textureFile = new(url);
-            yield return textureFile;
-            textureFile.LoadImageIntoTexture(trailTex);
+            var bytes = System.IO.File.ReadAllBytes(url);
+            trailTex.LoadImage(bytes);
         }
-        
+        private static Vector4 ColorToV4(Color32 colour)
+        {
+             return new Vector4(
+                colour.r / 255.0f,
+                colour.g / 255.0f,
+                colour.b / 255.0f,
+                colour.a / 255.0f);
+        }
+        private static Color32 V4ToColor(Vector4 v4)
+        {
+            Color tempColour = v4;
+            Color32 sendColour = tempColour;
+            return sendColour;
+        }
         // The line below allows access to your plugin's logger from anywhere in your code, including outside of this file.
         // Use it with 'YourPlugin.Logger.LogInfo(message)' (or any of the other Log* methods)
         internal new static ManualLogSource Logger { get; private set; }
-
     }
 }
