@@ -1,14 +1,18 @@
-﻿using BepInEx;
-using BepInEx.Configuration;
-using BepInEx.Logging;
-using FistVR;
-using UnityEngine;
+﻿using FistVR;
+using BepInEx;
+using Sodalite;
 using System.IO;
+using UnityEngine;
+using Sodalite.Api;
+using BepInEx.Logging;
+using BepInEx.Configuration;
+using Sodalite.ModPanel;
 
 namespace JalexInteractive
 {
     [BepInAutoPlugin]
     [BepInProcess("h3vr.exe")]
+    [BepInDependency("nrgill28.Sodalite", "1.4.1")]
     public partial class PlayerTrails : BaseUnityPlugin
     {
         /* == Quick Start == 
@@ -26,36 +30,39 @@ namespace JalexInteractive
         // Config Globals
             // String, Boolean, Byte, SByte, Int16, UInt16, Int32, UInt32, Int64, UInt64, Single, Double, Decimal, Enum, Color, Vector2, Vector3, Vector4, Quaternion
         // Toggles
-        private ConfigEntry<bool> cfg_headEnabled;
-        private ConfigEntry<bool> cfg_lHandEnabled;
-        private ConfigEntry<bool> cfg_rHandEnabled;
+        public static ConfigEntry<bool> cfg_headEnabled;
+        public static ConfigEntry<bool> cfg_lHandEnabled;
+        public static ConfigEntry<bool> cfg_rHandEnabled;
         // Offsets
-        private ConfigEntry<Vector3> cfg_headOffset;
-        private ConfigEntry<Vector3> cfg_lHandOffset;
-        private ConfigEntry<Vector3> cfg_rHandOffset;
+        public static ConfigEntry<Vector3> cfg_headOffset;
+        public static ConfigEntry<Vector3> cfg_lHandOffset;
+        public static ConfigEntry<Vector3> cfg_rHandOffset;
         // Material Properties
-        private ConfigEntry<string> cfg_trailTex;
-        private ConfigEntry<Vector4> cfg_startColour;
-        private ConfigEntry<Vector4> cfg_endColour;
+        public static ConfigEntry<string> cfg_trailTex;
+        public static ConfigEntry<Vector4> cfg_startColour;
+        public static ConfigEntry<Vector4> cfg_endColour;
         // Trail Properties
-        private ConfigEntry<float> cfg_bodyTime;
-        private ConfigEntry<float> cfg_lHandTime;
-        private ConfigEntry<float> cfg_rHandTime;
-        private ConfigEntry<float> cfg_bodyStartWidth;
-        private ConfigEntry<float> cfg_lHandStartWidth;
-        private ConfigEntry<float> cfg_rHandStartWidth;
-        private ConfigEntry<float> cfg_bodyEndWidth;
-        private ConfigEntry<float> cfg_lHandEndWidth;
-        private ConfigEntry<float> cfg_rHandEndWidth;
+        public static ConfigEntry<float> cfg_bodyTime;
+        public static ConfigEntry<float> cfg_lHandTime;
+        public static ConfigEntry<float> cfg_rHandTime;
+        public static ConfigEntry<float> cfg_bodyStartWidth;
+        public static ConfigEntry<float> cfg_lHandStartWidth;
+        public static ConfigEntry<float> cfg_rHandStartWidth;
+        public static ConfigEntry<float> cfg_bodyEndWidth;
+        public static ConfigEntry<float> cfg_lHandEndWidth;
+        public static ConfigEntry<float> cfg_rHandEndWidth;
 
         // TODO
         // Corner Cap vertices maybe
         // End Cap vertices maybe
 
         // GameObject Globals
-        public GameObject body;
-        public GameObject lHand;
-        public GameObject rHand;
+        public static GameObject body;
+        public static GameObject lHand;
+        public static  GameObject rHand;
+        private GameObject optionsPanelPrefab;
+        private LockablePanel optionsPanel = null;
+        private UniversalModPanel optionsPanelComponent;
         public TrailRenderer bodyTrail;          
         public TrailRenderer lHandTrail;          
         public TrailRenderer rHandTrail;
@@ -116,6 +123,22 @@ namespace JalexInteractive
             {
                 rHand.SetActive(false);
             }
+
+            // Load options panel and add wrist menu option to spawn it - new panel being created but new panel not being applied
+            var panel = AssetBundle.LoadFromFile(Path.Combine(Path.GetDirectoryName(Info.Location), "playertrailspanel_preload"));
+            optionsPanelPrefab = panel.LoadAsset<GameObject>("PlayerTrailsPanel");
+            if (optionsPanelPrefab)
+            {
+                optionsPanel = new LockablePanel();
+                optionsPanel.Configure += ConfigureModPanel;
+                optionsPanel.TextureOverride = panel.LoadAsset<Texture2D>("Panel");
+                WristMenuAPI.Buttons.Add(new WristMenuButton("Player Trails Panel", SpawnTrailsPanel));
+                //WristMenuAPI.CustomButtonsSection.Buttons.Add(new WristMenuButton("Player Trails Config", SpawnOptionsPanel));
+            }
+            else
+            {
+                Logger.LogError("~ Oopsie woopsie I made a fucky wucky ~");
+            }
         }
         private void TrailSetup()
         {
@@ -129,7 +152,7 @@ namespace JalexInteractive
             trailMat = new Material(Shader.Find("Alloy/Particles/Additive (Soft)")){name = "TrailMaterial"};
             trailTex = new Texture2D(128, 128, TextureFormat.DXT5, false){name = "TrailTexture",};
                 // Grab texture from disk
-            string url = Path.GetDirectoryName(Info.Location) + "/textures/" + cfg_trailTex.Value;
+            string url = Path.GetDirectoryName(Info.Location) + "\\textures\\" + cfg_trailTex.Value;
             Logger.LogMessage("~ Grabbing texture from: " + url + " ~");
             TextureGrab(url);
             trailMat.SetTexture("_MainTex", trailTex);
@@ -169,6 +192,13 @@ namespace JalexInteractive
             lHandOffset = cfg_lHandOffset.Value;
             rHandOffset = cfg_rHandOffset.Value;
         }
+        private void ConfigureModPanel(GameObject panel)
+        {
+            var canvasTransform = panel.transform.Find("OptionsCanvas_0_Main/Canvas");
+            optionsPanelComponent = Instantiate(optionsPanelPrefab, canvasTransform.position, canvasTransform.rotation, canvasTransform.parent)!.GetComponent<UniversalModPanel>();
+            optionsPanelComponent.gameObject.name = "PlayerTrailsOptionsPanel";
+            Destroy(canvasTransform.gameObject);
+        }
         private void LateUpdate()
         {
             if (GM.CurrentPlayerBody && !parented) {
@@ -197,6 +227,11 @@ namespace JalexInteractive
             var bytes = System.IO.File.ReadAllBytes(url);
             trailTex.LoadImage(bytes);
         }
+        private void SpawnTrailsPanel(object sender, ButtonClickEventArgs args)
+            {
+                var panel = optionsPanel.GetOrCreatePanel(); //rem var
+                args.Hand.OtherHand.RetrieveObject(panel.GetComponent<FVRPhysicalObject>());
+            }
         private static Vector4 ColorToV4(Color32 colour)
         {
              return new Vector4(
