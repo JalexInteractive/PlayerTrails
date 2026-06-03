@@ -6,14 +6,14 @@ Whilst working on my randomised Take and Hold map [Virtual Mission](https://thun
 
 ## Ok, that's neat but what options actually are there?
 The configs are separated into four categories:
-* Toggles
+- **Toggles**
  - Individual toggles for each trail, turn one off if it's getting in the way!
-* Offsets
+- **Offsets**
  - Change the position for each trail, move them about to your hearts content.
-* Material
+- **Material**
  - Change the texture of your trail, done by dropping files into the mod folder (see below.)
  - Colour your trail, includes start and end colour, and alpha/transparency so you can gradient and even fade out your trail.
-* Trail
+- **Trail**
  - Make loooooooong trails, change the time the trail is around for, longer time = longer trail.
  - Change the start and end width, want a trail with GIRTH? This is the setting for you. Each trail can be individually scaled!
 
