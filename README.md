@@ -1,28 +1,26 @@
-# H3VR BepInEx Plugin Template
-A new, simpler, and easy to use template for making BepInEx plugins for H3VR.
+# PlayerTrails for H3VR
+Fully customisable trails for your head/body and hands.
 
-## Using this template
-1. Get a copy of this project. 
-   - If you intend to publish your plugin on GitHub, use the green 'Use this template' button on the repository page, then clone that new repository.
-   - Otherwise click the 'Code' button and download as zip, then extract.
-2. Open the `plugin/plugin.csproj` file in a C# IDE such as Visual Studio, Rider, or Visual Studio Code.
-3. In the files `plugin/plugin.csproj` and `plugin/src/Plugin.cs` locate the TODO comments (there should be 3 total) and use them to change the name, author, and version of your plugin.
-4. Do a build of the project and you're ready to start writing some code.
+## Origin Story
+Whilst working on my randomised Take and Hold map [Virtual Mission](https://thunderstore.io/c/h3vr/p/JalexInteractive/VirtualMission), I decided to include a player trail system to compliment the cyber theming it has. Well I then got to wondering if I could abstract that into a general mod and so, PlayerTrails was born! Bigger and better than ever before it allows for a large amount of customisation, even down to importing your own textures to use. It would have been done a lot sooner after Virtual Mission, except for the fact I also decided to include a spawnable panel for easy in game editing which meant I had to do some actual work instead of just copying and pasting my old code.
 
-## Using your plugin
-1. After a successful build, your plugin should be output to `plugin/bin/[Debug|Release]/net35/your_name.mod_name.dll`.
-2. Copy this dll to your r2mm profile's `BepInEx/plugins` folder and it should load!
-3. When building in Debug mode, a `your_name.mod_name.dll.mdb` file will also be generated in the output folder. Copy this into your plugins folder as well for additional debugging details such as filenames and line numbers in stack traces.
+## Ok, that's neat but what options actually are there?
+The configs are separated into four categories:
+* Toggles
+ - Individual toggles for each trail, turn one off if it's getting in the way!
+* Offsets
+ - Change the position for each trail, move them about to your hearts content.
+* Material
+ - Change the texture of your trail, done by dropping files into the mod folder (see below.)
+ - Colour your trail, includes start and end colour, and alpha/transparency so you can gradient and even fade out your trail.
+* Trail
+ - Make loooooooong trails, change the time the trail is around for, longer time = longer trail.
+ - Change the start and end width, want a trail with GIRTH? This is the setting for you. Each trail can be individually scaled!
 
-## Including extra files
-If you need to include additional files with your plugin (for example, an asset bundle) you can add the file to your project and open the properties dialog to change the 'Copy to output directory' option to 'Copy if newer'. It will then be included in your builds, however do note that when r2mm/TMM goes to install your mod it will flatten the file structure of your mod. This means that any files in a subfolder will be moved beside your plugin's dll, so watch out for that when loading the extra files.
+## Wait, you said something about custom textures?
+That's right! I've included a few textures by default but you can also add your own. Simply open up the mod's folder (if using r2modmanager you can find this by selecting the "Browse profile folder" setting then navigating to `BepInEx\plugins\JalexInteractive-PlayerTrails\textures`.)
 
-## Sharing / Uploading to Thunderstore
-This template comes with a build script that automatically makes a thunderstore package file that you can easily upload. Before uploading you will want to modify / replace the following files with your own:
+In here you'll find the existing examples but drop any PNG or JPG image into that folder and the mod should be able to pick it up. Then you can simply change the mod configs via r2 or the included mod options panel to your new image and there you have it, your custom trail is now in game!
 
-* `README.md`: this file, this is the long description of your mod.
-* `icon.png`: the icon for your mod on TS. Must be 256x256.
-* `LICENSE`: you may remove this file if you don't need a license, or replace with your own license.
-* `manifest.json`: most of the stuff here is filled out during a build but if you have additional dependencies on other Thunderstore mods you will place them here.
-
-With these files modified / replaced, do another build and your Thunderstore package will be output to `plugin/bin/[Debug|Release]/net32/your_name.mod_name.zip`. This file can be uploaded straight to Thunderstore or imported as a local mod in r2mm/TMM.
+## This is all pretty neat, how can I say thanks!
+I'm around on the main H3VR and related modding Discords so if you like the mod, do let me know! If you're feeling totally baller high roller swag you can also leave me a tip on my [Ki-Fi](https://ko-fi.com/jalexinteractive)
