@@ -7,15 +7,15 @@ Whilst working on my randomised Take and Hold map [Virtual Mission](https://thun
 ## Ok, that's neat but what options actually are there?
 The configs are separated into four categories:
 - **Toggles**
- - Individual toggles for each trail, turn one off if it's getting in the way!
+   - Individual toggles for each trail, turn one off if it's getting in the way!
 - **Offsets**
- - Change the position for each trail, move them about to your hearts content.
+   - Change the position for each trail, move them about to your hearts content.
 - **Material**
- - Change the texture of your trail, done by dropping files into the mod folder (see below.)
- - Colour your trail, includes start and end colour, and alpha/transparency so you can gradient and even fade out your trail.
+   - Change the texture of your trail, done by dropping files into the mod folder (see below.)
+   - Colour your trail, includes start and end colour, and alpha/transparency so you can gradient and even fade out your trail.
 - **Trail**
- - Make loooooooong trails, change the time the trail is around for, longer time = longer trail.
- - Change the start and end width, want a trail with GIRTH? This is the setting for you. Each trail can be individually scaled!
+   - Make loooooooong trails, change the time the trail is around for, longer time = longer trail.
+   - Change the start and end width, want a trail with GIRTH? This is the setting for you. Each trail can be individually scaled!
 
 ## Wait, you said something about custom textures?
 That's right! I've included a few textures by default but you can also add your own. Simply open up the mod's folder (if using r2modmanager you can find this by selecting the "Browse profile folder" setting then navigating to `BepInEx\plugins\JalexInteractive-PlayerTrails\textures`.)
