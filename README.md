@@ -18,7 +18,7 @@ The configs are separated into four categories:
    - Change the start and end width, want a trail with GIRTH? This is the setting for you. Each trail can be individually scaled!
 
 ## Wait, you said something about custom textures?
-That's right! I've included a few textures by default but you can also add your own. Simply open up the mod's folder (if using r2modmanager you can find this by selecting the "Browse profile folder" setting then navigating to `BepInEx\plugins\JalexInteractive-PlayerTrails\textures`.)
+That's right! I've included a few textures by default but you can also add your own. Simply open up the mod's folder (if using r2modmanager you can find this by selecting the "Browse profile folder" setting then navigating to `BepInEx\plugins\JalexInteractive-PlayerTrails\textures`).
 
 In here you'll find the existing examples but drop any PNG or JPG image into that folder and the mod should be able to pick it up. Then you can simply change the mod configs via r2 or the included mod options panel to your new image and there you have it, your custom trail is now in game!
 

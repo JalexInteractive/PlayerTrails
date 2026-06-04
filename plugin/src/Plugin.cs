@@ -63,6 +63,7 @@ namespace JalexInteractive
         private GameObject optionsPanelPrefab;
         private LockablePanel optionsPanel = null;
         private UniversalModPanel optionsPanelComponent;
+        private PlayerTrailsPanel playerTrailsPanelComponent;
         public TrailRenderer bodyTrail;          
         public TrailRenderer lHandTrail;          
         public TrailRenderer rHandTrail;
@@ -195,8 +196,10 @@ namespace JalexInteractive
         private void ConfigureModPanel(GameObject panel)
         {
             var canvasTransform = panel.transform.Find("OptionsCanvas_0_Main/Canvas");
-            optionsPanelComponent = Instantiate(optionsPanelPrefab, canvasTransform.position, canvasTransform.rotation, canvasTransform.parent)!.GetComponent<UniversalModPanel>();
-            optionsPanelComponent.gameObject.name = "PlayerTrailsOptionsPanel";
+            // optionsPanelComponent = Instantiate(optionsPanelPrefab, canvasTransform.position, canvasTransform.rotation, canvasTransform.parent)!.GetComponent<UniversalModPanel>();
+            // optionsPanelComponent.gameObject.name = "PlayerTrailsOptionsPanel";
+            playerTrailsPanelComponent = Instantiate(optionsPanelPrefab, canvasTransform.position, canvasTransform.rotation, canvasTransform.parent)!.GetComponent<PlayerTrailsPanel>();
+            playerTrailsPanelComponent.gameObject.name = "PlayerTrailsOptionsPanel";
             Destroy(canvasTransform.gameObject);
         }
         private void LateUpdate()
