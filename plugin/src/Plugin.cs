@@ -14,19 +14,7 @@ namespace JalexInteractive
     [BepInProcess("h3vr.exe")]
     [BepInDependency("nrgill28.Sodalite", "1.4.1")]
     public partial class PlayerTrails : BaseUnityPlugin
-    {
-        /* == Quick Start == 
-         * Your plugin class is a Unity MonoBehaviour that gets added to a global game object when the game starts.
-         * You should use Awake to initialize yourself, read configs, register stuff, etc.
-         * If you need to use Update or other Unity event methods those will work too.
-         *
-         * Some references on how to do various things:
-         * Adding config settings to your plugin: https://docs.bepinex.dev/articles/dev_guide/plugin_tutorial/4_configuration.html
-         * Hooking / Patching game methods: https://harmony.pardeike.net/articles/patching.html
-         * Also check out the Unity documentation: https://docs.unity3d.com/560/Documentation/ScriptReference/index.html
-         * And the C# documentation: https://learn.microsoft.com/en-us/dotnet/csharp/
-         */
-        
+    {    
         // Config Globals
             // String, Boolean, Byte, SByte, Int16, UInt16, Int32, UInt32, Int64, UInt64, Single, Double, Decimal, Enum, Color, Vector2, Vector3, Vector4, Quaternion
         // Toggles
@@ -61,9 +49,6 @@ namespace JalexInteractive
         public static GameObject lHand;
         public static  GameObject rHand;
         private GameObject optionsPanelPrefab;
-        private LockablePanel optionsPanel = null;
-        private UniversalModPanel optionsPanelComponent;
-        private PlayerTrailsPanel playerTrailsPanelComponent;
         public TrailRenderer bodyTrail;          
         public TrailRenderer lHandTrail;          
         public TrailRenderer rHandTrail;
@@ -73,6 +58,8 @@ namespace JalexInteractive
         private Vector3 bodyOffset;
         private Vector3 lHandOffset;
         private Vector3 rHandOffset;
+        public static string basePath;
+
         private void Awake()
         {
             Logger = base.Logger;
@@ -125,21 +112,18 @@ namespace JalexInteractive
                 rHand.SetActive(false);
             }
 
-            // Load options panel and add wrist menu option to spawn it - new panel being created but new panel not being applied
-            var panel = AssetBundle.LoadFromFile(Path.Combine(Path.GetDirectoryName(Info.Location), "playertrailspanel_preload"));
-            optionsPanelPrefab = panel.LoadAsset<GameObject>("PlayerTrailsPanel");
+            // Load options panel and add wrist menu option to spawn it
+            var panelBundle = AssetBundle.LoadFromFile(Path.Combine(Path.GetDirectoryName(Info.Location), "playertrailspanel_preload"));
+            optionsPanelPrefab = panelBundle.LoadAsset<GameObject>("PlayerTrailsPanel");
             if (optionsPanelPrefab)
             {
-                optionsPanel = new LockablePanel();
-                optionsPanel.Configure += ConfigureModPanel;
-                optionsPanel.TextureOverride = panel.LoadAsset<Texture2D>("Panel");
                 WristMenuAPI.Buttons.Add(new WristMenuButton("Player Trails Panel", SpawnTrailsPanel));
-                //WristMenuAPI.CustomButtonsSection.Buttons.Add(new WristMenuButton("Player Trails Config", SpawnOptionsPanel));
             }
             else
             {
                 Logger.LogError("~ Oopsie woopsie I made a fucky wucky ~");
             }
+
         }
         private void TrailSetup()
         {
@@ -153,7 +137,9 @@ namespace JalexInteractive
             trailMat = new Material(Shader.Find("Alloy/Particles/Additive (Soft)")){name = "TrailMaterial"};
             trailTex = new Texture2D(128, 128, TextureFormat.DXT5, false){name = "TrailTexture",};
                 // Grab texture from disk
-            string url = Path.GetDirectoryName(Info.Location) + "\\textures\\" + cfg_trailTex.Value;
+                // Log base path for panel to access
+            basePath = Path.GetDirectoryName(Info.Location) + "\\textures\\";
+            string url = basePath + cfg_trailTex.Value;
             Logger.LogMessage("~ Grabbing texture from: " + url + " ~");
             TextureGrab(url);
             trailMat.SetTexture("_MainTex", trailTex);
@@ -161,8 +147,6 @@ namespace JalexInteractive
             trailMat.SetTextureScale("_MainTex", new Vector2(-1,1));
                 // Colour to white with no transparency (will be handled by trail renderer)
             trailMat.SetColor("_Color", new Color32(255, 255, 255, 255));
-                // Change illumination flags - unsure if nessecary any more
-            //trailMat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
 
             // TrailRenderer Setup
                 // Create components
@@ -192,15 +176,6 @@ namespace JalexInteractive
             bodyOffset = cfg_headOffset.Value;
             lHandOffset = cfg_lHandOffset.Value;
             rHandOffset = cfg_rHandOffset.Value;
-        }
-        private void ConfigureModPanel(GameObject panel)
-        {
-            var canvasTransform = panel.transform.Find("OptionsCanvas_0_Main/Canvas");
-            // optionsPanelComponent = Instantiate(optionsPanelPrefab, canvasTransform.position, canvasTransform.rotation, canvasTransform.parent)!.GetComponent<UniversalModPanel>();
-            // optionsPanelComponent.gameObject.name = "PlayerTrailsOptionsPanel";
-            playerTrailsPanelComponent = Instantiate(optionsPanelPrefab, canvasTransform.position, canvasTransform.rotation, canvasTransform.parent)!.GetComponent<PlayerTrailsPanel>();
-            playerTrailsPanelComponent.gameObject.name = "PlayerTrailsOptionsPanel";
-            Destroy(canvasTransform.gameObject);
         }
         private void LateUpdate()
         {
@@ -232,7 +207,7 @@ namespace JalexInteractive
         }
         private void SpawnTrailsPanel(object sender, ButtonClickEventArgs args)
             {
-                var panel = optionsPanel.GetOrCreatePanel(); //rem var
+                var panel = Instantiate(optionsPanelPrefab);
                 args.Hand.OtherHand.RetrieveObject(panel.GetComponent<FVRPhysicalObject>());
             }
         private static Vector4 ColorToV4(Color32 colour)
