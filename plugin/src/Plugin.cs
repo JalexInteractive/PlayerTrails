@@ -6,7 +6,9 @@ using UnityEngine;
 using Sodalite.Api;
 using BepInEx.Logging;
 using BepInEx.Configuration;
-using Sodalite.ModPanel;
+using UnityEngine.SceneManagement;
+using MonoMod.Utils;
+using System;
 
 namespace JalexInteractive
 {
@@ -18,11 +20,11 @@ namespace JalexInteractive
         // Config Globals
             // String, Boolean, Byte, SByte, Int16, UInt16, Int32, UInt32, Int64, UInt64, Single, Double, Decimal, Enum, Color, Vector2, Vector3, Vector4, Quaternion
         // Toggles
-        public static ConfigEntry<bool> cfg_headEnabled;
+        public static ConfigEntry<bool> cfg_bodyEnabled;
         public static ConfigEntry<bool> cfg_lHandEnabled;
         public static ConfigEntry<bool> cfg_rHandEnabled;
         // Offsets
-        public static ConfigEntry<Vector3> cfg_headOffset;
+        public static ConfigEntry<Vector3> cfg_bodyOffset;
         public static ConfigEntry<Vector3> cfg_lHandOffset;
         public static ConfigEntry<Vector3> cfg_rHandOffset;
         // Material Properties
@@ -49,16 +51,21 @@ namespace JalexInteractive
         public static GameObject lHand;
         public static  GameObject rHand;
         private GameObject optionsPanelPrefab;
-        public TrailRenderer bodyTrail;          
-        public TrailRenderer lHandTrail;          
-        public TrailRenderer rHandTrail;
-        public Material trailMat;
-        public Texture2D trailTex;
+        public static TrailRenderer bodyTrail;          
+        public static TrailRenderer lHandTrail;          
+        public static TrailRenderer rHandTrail;
+        public static Material trailMat;
+        public static Texture2D trailTex;
         public bool parented = false;
-        private Vector3 bodyOffset;
-        private Vector3 lHandOffset;
-        private Vector3 rHandOffset;
+        public static Vector3 bodyOffset;
+        public static Vector3 lHandOffset;
+        public static Vector3 rHandOffset;
+        public static Color32 startColour;
+        public static Color32 endColour;
         public static string basePath;
+        public Scene activeScene;
+        public GameObject panel = null;
+        private bool spawnedThisScene = false;
 
         private void Awake()
         {
@@ -68,13 +75,14 @@ namespace JalexInteractive
             Logger.LogMessage($"~ {Name} Version {Version} by Jalex Interactive - Initalising ~");
 
             // Config Setup - These are appearing in R2 bottom to top so consider switching the order round
+            Config.SaveOnConfigSet = true;
                 // Toggles
-            cfg_headEnabled = Config.Bind("Toggles", "Head trail On/Off", true, "Turn the head trail on or off.");
+            cfg_bodyEnabled = Config.Bind("Toggles", "Head trail On/Off", true, "Turn the head/body trail on or off.");
             cfg_lHandEnabled = Config.Bind("Toggles", "Left hand trail On/Off", true, "Turn the left hand trail on or off.");
             cfg_rHandEnabled = Config.Bind("Toggles", "Right hand On/Off", true, "Turn the right hand trail on or off.");
              // Offsets
-            Vector3 defaultHeadOffset = new(0f, -1f, 0f);
-            cfg_headOffset = Config.Bind("Offsets", "Head Offset", defaultHeadOffset, "Offset for the head/body trail position (x,y,z)");
+            Vector3 defaultBodyOffset = new(0f, -1f, 0f);
+            cfg_bodyOffset = Config.Bind("Offsets", "Head Offset", defaultBodyOffset, "Offset for the head/body trail position (x,y,z)");
             Vector3 defaultlHandOffset = new(0f, 0f, -0.21f);
             cfg_lHandOffset = Config.Bind("Offsets", "Left Hand Offset", defaultlHandOffset, "Offset for the left hand trail position (x,y,z)");
             Vector3 defaultrHandOffset = new(0f, 0f, -0.21f);
@@ -99,7 +107,7 @@ namespace JalexInteractive
             TrailSetup();
 
             // Turn off after setup if config says so.
-            if (!cfg_headEnabled.Value)
+            if (!cfg_bodyEnabled.Value)
             {
                 body.SetActive(false);
             }
@@ -123,7 +131,7 @@ namespace JalexInteractive
             {
                 Logger.LogError("~ Oopsie woopsie I made a fucky wucky ~");
             }
-
+            activeScene = SceneManager.GetActiveScene();
         }
         private void TrailSetup()
         {
@@ -141,7 +149,7 @@ namespace JalexInteractive
             basePath = Path.GetDirectoryName(Info.Location) + "\\textures\\";
             string url = basePath + cfg_trailTex.Value;
             Logger.LogMessage("~ Grabbing texture from: " + url + " ~");
-            TextureGrab(url);
+            trailTex.LoadImage(TextureGrab(url));
             trailMat.SetTexture("_MainTex", trailTex);
             // Flip texture so it reads correctly in game
             trailMat.SetTextureScale("_MainTex", new Vector2(-1,1));
@@ -170,10 +178,10 @@ namespace JalexInteractive
             bodyTrail.textureMode = lHandTrail.textureMode = rHandTrail.textureMode = LineTextureMode.RepeatPerSegment;
             bodyTrail.material = lHandTrail.material = rHandTrail.material = trailMat;
                 // Colour setup
-            bodyTrail.startColor = lHandTrail.startColor = rHandTrail.startColor = V4ToColor(cfg_startColour.Value);
-            bodyTrail.endColor = lHandTrail.endColor = rHandTrail.endColor = V4ToColor(cfg_endColour.Value);
+            bodyTrail.startColor = lHandTrail.startColor = rHandTrail.startColor = V4ToColor32(cfg_startColour.Value);
+            bodyTrail.endColor = lHandTrail.endColor = rHandTrail.endColor = V4ToColor32(cfg_endColour.Value);
                 //Offset Setup
-            bodyOffset = cfg_headOffset.Value;
+            bodyOffset = cfg_bodyOffset.Value;
             lHandOffset = cfg_lHandOffset.Value;
             rHandOffset = cfg_rHandOffset.Value;
         }
@@ -200,29 +208,47 @@ namespace JalexInteractive
                 parented = false;
             }
         }       
-        public void TextureGrab(string url)
+        public static byte[] TextureGrab(string url)
         {
             var bytes = System.IO.File.ReadAllBytes(url);
-            trailTex.LoadImage(bytes);
+            return bytes;
         }
         private void SpawnTrailsPanel(object sender, ButtonClickEventArgs args)
             {
-                var panel = Instantiate(optionsPanelPrefab);
+                // If on Main Menu (because otherwise it won't trigger there) or not the active scene
+                if (activeScene.name == "MainMenu3" | activeScene != SceneManager.GetActiveScene())
+                    {
+                        // If it was option B, change spawned to false and reset active scene
+                        if (activeScene != SceneManager.GetActiveScene()) {spawnedThisScene = false;}
+                        activeScene = SceneManager.GetActiveScene();
+                        // If not spawned this scene, spawn it and set spawned to true
+                        if (!spawnedThisScene) {panel = Instantiate(optionsPanelPrefab);}
+                        spawnedThisScene = true;
+                    }
+                // Pull panel from the ether
                 args.Hand.OtherHand.RetrieveObject(panel.GetComponent<FVRPhysicalObject>());
             }
-        private static Vector4 ColorToV4(Color32 colour)
+        public static Vector4 ColorToV4(Color colour)
         {
              return new Vector4(
-                colour.r / 255.0f,
-                colour.g / 255.0f,
-                colour.b / 255.0f,
-                colour.a / 255.0f);
+                colour.r,
+                colour.g,
+                colour.b,
+                colour.a);
         }
-        private static Color32 V4ToColor(Vector4 v4)
+        public static Color32 V4ToColor32(Vector4 v4)
         {
+            Debug.Log("~~ Convert STEP ~~");
+            Debug.Log(v4);
             Color tempColour = v4;
+            Debug.Log(tempColour);
             Color32 sendColour = tempColour;
+            Debug.Log(sendColour);
             return sendColour;
+        }
+        private void SaveConfigs() // How do I do, what, help do i even need this?
+        {
+            Config.Save();
         }
         // The line below allows access to your plugin's logger from anywhere in your code, including outside of this file.
         // Use it with 'YourPlugin.Logger.LogInfo(message)' (or any of the other Log* methods)

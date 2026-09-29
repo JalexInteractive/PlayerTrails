@@ -4,8 +4,9 @@ using UnityEngine.UI;
 
 namespace JalexInteractive
 {
-	public class NgaScrollPointable : FVRPointable
+	public class NGAScrollPointable : FVRPointable
 	{
+		private ScrollRect _scrollRect;
         public float scrollSpeed = 5000f;
 		private void Awake()
         {
@@ -50,6 +51,5 @@ namespace JalexInteractive
 				}
 			}
 		}
-		private ScrollRect _scrollRect;
 	}
 }
