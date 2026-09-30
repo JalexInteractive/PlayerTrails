@@ -3,11 +3,11 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
+using System;
+using HarmonyLib;
 
 // TODO
 // Fix image loading (see if you can find anywhere if panelTex and panelSprite are actually working and go from there)
-// Figure out why the material page sliders are so fucky
-// Double check I haven't fucked everything up by adding * / 2 to the values
 
 namespace JalexInteractive 
 {
@@ -36,7 +36,7 @@ namespace JalexInteractive
 		private static Text t_startColour;
 		private static Text t_endColour;
 		private static Image i_colourSwatch;
-		private static Color currentColor;
+		private static Color32 currentColor;
 		private static Slider s_r_m;
 		private static Slider s_g_m;
 		private static Slider s_b_m;
@@ -89,9 +89,10 @@ namespace JalexInteractive
 			s_b_m = transform.Find("Canvas/MaterialPage/Sliders/B").gameObject.GetComponent(typeof(Slider)) as Slider;
 			s_a_m = transform.Find("Canvas/MaterialPage/Sliders/A").gameObject.GetComponent(typeof(Slider)) as Slider;
 			t_rv_m =  transform.Find("Canvas/MaterialPage/Sliders/R/Value").gameObject.GetComponent(typeof(Text)) as Text;
-			t_gv_m =  transform.Find("Canvas/MaterialPage/Sliders/R/Value").gameObject.GetComponent(typeof(Text)) as Text;
-			t_bv_m =  transform.Find("Canvas/MaterialPage/Sliders/R/Value").gameObject.GetComponent(typeof(Text)) as Text;
-			t_av_m =  transform.Find("Canvas/MaterialPage/Sliders/R/Value").gameObject.GetComponent(typeof(Text)) as Text;
+			t_gv_m =  transform.Find("Canvas/MaterialPage/Sliders/G/Value").gameObject.GetComponent(typeof(Text)) as Text;
+			t_bv_m =  transform.Find("Canvas/MaterialPage/Sliders/B/Value").gameObject.GetComponent(typeof(Text)) as Text;
+			t_av_m =  transform.Find("Canvas/MaterialPage/Sliders/A/Value").gameObject.GetComponent(typeof(Text)) as Text;
+			currentColor = PlayerTrails.startColour;
 				// Trail
 			t_head_tr = transform.Find("Canvas/TrailPage/Body").gameObject.GetComponent(typeof(Text)) as Text;
 			t_lHand_tr = transform.Find("Canvas/TrailPage/LHand").gameObject.GetComponent(typeof(Text)) as Text;
@@ -367,7 +368,7 @@ namespace JalexInteractive
 					PlayerTrails.lHandTrail.startColor = PlayerTrails.startColour;
 					PlayerTrails.rHandTrail.startColor = PlayerTrails.startColour;
 					i_colourSwatch.color = PlayerTrails.startColour;
-					PlayerTrails.cfg_startColour.Value = PlayerTrails.ColorToV4(PlayerTrails.startColour);
+					PlayerTrails.cfg_startColour.Value = PlayerTrails.Color32ToV4(PlayerTrails.startColour);
 					PlayerTrails.cfg_startColour.ConfigFile.Save(); // Unknown if nessecary
 					trailClone.startColor = PlayerTrails.startColour;
 				break;
@@ -391,7 +392,7 @@ namespace JalexInteractive
 					PlayerTrails.lHandTrail.endColor = PlayerTrails.endColour;
 					PlayerTrails.rHandTrail.endColor = PlayerTrails.endColour;
 					i_colourSwatch.color = PlayerTrails.endColour;
-					PlayerTrails.cfg_endColour.Value = PlayerTrails.ColorToV4(PlayerTrails.endColour);
+					PlayerTrails.cfg_endColour.Value = PlayerTrails.Color32ToV4(PlayerTrails.endColour);
 					PlayerTrails.cfg_endColour.ConfigFile.Save(); // Unknown if nessecary
 					trailClone.endColor = PlayerTrails.endColour;
 				break;
@@ -401,34 +402,21 @@ namespace JalexInteractive
 			t_bv_m.text = s_b_m.value.ToString();
 			t_av_m.text = s_a_m.value.ToString();
 		}
-		private void MaterialActiveSwitched() // TODO - Figure out why the values get all fucky when switching
+		private void MaterialActiveSwitched()
 		{
 			switch (startOrEndColour)
 			{
 				case 0:
 					// Sliders
-					Debug.Log("~~ CURRENT COLOUR PRE ~~");
-					Debug.Log(currentColor);
-					Debug.Log("~~ CFG COLOUR PRE ~~");
-					Debug.Log(PlayerTrails.cfg_startColour.Value);
-					currentColor = PlayerTrails.V4ToColor32(PlayerTrails.cfg_startColour.Value);
-					Debug.Log("~~ CURRENT COLOUR POST ~~");
-					Debug.Log(currentColor);
+					currentColor = PlayerTrails.startColour;
 					// Swatch
 					i_colourSwatch.color = currentColor;
 				break;
 				case 1:
-					Debug.Log("~~ CURRENT COLOUR PRE ~~");
-					Debug.Log(currentColor);
-					Debug.Log("~~ CFG COLOUR PRE ~~");
-					Debug.Log(PlayerTrails.cfg_startColour.Value);
-					currentColor = PlayerTrails.V4ToColor32(PlayerTrails.cfg_endColour.Value);
-					Debug.Log("~~ CURRENT COLOUR POST ~~");
-					Debug.Log(currentColor);
+					currentColor = PlayerTrails.endColour;
 					i_colourSwatch.color = currentColor;
 				break;	
 			}
-			Debug.Log("~~~~~~~~~~~~");
 			s_r_m.value = currentColor.r;
 			s_g_m.value = currentColor.g;
 			s_b_m.value = currentColor.b;

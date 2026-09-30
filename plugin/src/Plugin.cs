@@ -178,8 +178,10 @@ namespace JalexInteractive
             bodyTrail.textureMode = lHandTrail.textureMode = rHandTrail.textureMode = LineTextureMode.RepeatPerSegment;
             bodyTrail.material = lHandTrail.material = rHandTrail.material = trailMat;
                 // Colour setup
-            bodyTrail.startColor = lHandTrail.startColor = rHandTrail.startColor = V4ToColor32(cfg_startColour.Value);
-            bodyTrail.endColor = lHandTrail.endColor = rHandTrail.endColor = V4ToColor32(cfg_endColour.Value);
+            startColour = V4ToColor32(cfg_startColour.Value);
+            bodyTrail.startColor = lHandTrail.startColor = rHandTrail.startColor = startColour;
+            endColour = V4ToColor32(cfg_endColour.Value);
+            bodyTrail.endColor = lHandTrail.endColor = rHandTrail.endColor = endColour;
                 //Offset Setup
             bodyOffset = cfg_bodyOffset.Value;
             lHandOffset = cfg_lHandOffset.Value;
@@ -228,7 +230,7 @@ namespace JalexInteractive
                 // Pull panel from the ether
                 args.Hand.OtherHand.RetrieveObject(panel.GetComponent<FVRPhysicalObject>());
             }
-        public static Vector4 ColorToV4(Color colour)
+        public static Vector4 Color32ToV4(Color32 colour)
         {
              return new Vector4(
                 colour.r,
@@ -238,12 +240,8 @@ namespace JalexInteractive
         }
         public static Color32 V4ToColor32(Vector4 v4)
         {
-            Debug.Log("~~ Convert STEP ~~");
-            Debug.Log(v4);
-            Color tempColour = v4;
-            Debug.Log(tempColour);
+            Color tempColour = v4 / 255;
             Color32 sendColour = tempColour;
-            Debug.Log(sendColour);
             return sendColour;
         }
         private void SaveConfigs() // How do I do, what, help do i even need this?
