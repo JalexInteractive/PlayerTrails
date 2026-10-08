@@ -148,8 +148,14 @@ namespace JalexInteractive
                 // Log base path for panel to access
             basePath = Path.GetDirectoryName(Info.Location) + "\\textures\\";
             string url = basePath + cfg_trailTex.Value;
-            Logger.LogMessage("~ Grabbing texture from: " + url + " ~");
-            trailTex.LoadImage(TextureGrab(url));
+            if (File.Exists(url))
+            {
+                Logger.LogMessage("~ Grabbing texture from: " + url + " ~");
+                trailTex.LoadImage(TextureGrab(url));
+            } else
+            {
+                Logger.LogError("~ Current texture does not exist. Defaulting to blank. ~");
+            }
             trailMat.SetTexture("_MainTex", trailTex);
             // Flip texture so it reads correctly in game
             trailMat.SetTextureScale("_MainTex", new Vector2(-1,1));
@@ -212,8 +218,8 @@ namespace JalexInteractive
         }       
         public static byte[] TextureGrab(string url)
         {
-            var bytes = System.IO.File.ReadAllBytes(url);
-            return bytes;
+                var bytes = System.IO.File.ReadAllBytes(url);
+                return bytes;
         }
         private void SpawnTrailsPanel(object sender, ButtonClickEventArgs args)
             {
@@ -243,10 +249,6 @@ namespace JalexInteractive
             Color tempColour = v4 / 255;
             Color32 sendColour = tempColour;
             return sendColour;
-        }
-        private void SaveConfigs() // How do I do, what, help do i even need this?
-        {
-            Config.Save();
         }
         // The line below allows access to your plugin's logger from anywhere in your code, including outside of this file.
         // Use it with 'YourPlugin.Logger.LogInfo(message)' (or any of the other Log* methods)

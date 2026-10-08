@@ -1,21 +1,26 @@
 ﻿using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System;
-using HarmonyLib;
 
 // TODO
-// Fix image loading (see if you can find anywhere if panelTex and panelSprite are actually working and go from there)
+// Add default page that disappears on switching to a new one
+// Fix the scroll bar, worst comes to the worst maybe you can fudge it with a slider
 
 namespace JalexInteractive 
 {
 	public class PlayerTrailsPanel : MonoBehaviour {
 		public static int currentlyEditing = 0;
 		private static TrailRenderer trailClone;
-		public static Image RawImage;
+		public static Image rawImage;
+		public static GameObject rawImageGO;
+		public static Vector3 rawImageBasePos;
+		//public static GameObject ContentFrame;
 		public static GameObject newPanel = null;
+		public static List<string> fileList;
+		public static List<Image> imageList = [];
 		// Type _ name _ page
 		// Toggles
 		private static Text t_head_t;
@@ -108,59 +113,16 @@ namespace JalexInteractive
 			SwitchEditing(0);
 			SwitchStartOrEndColour(0);
 			
-				// Material Panel Content
-			// Grab images from folder
-			string[] filesRaw = Directory.GetFiles(PlayerTrails.basePath);
-			List<string> fileList= [.. filesRaw];
-			for (int i = 0; i == fileList.Count(); i++)
-			{
-				if (Path.GetFileName(fileList[i]).EndsWith(".png") || Path.GetFileName(fileList[i]).EndsWith(".jpg") || Path.GetFileName(fileList[i]).EndsWith(".jpeg"))
-				{
-					
-				} else
-				{
-					fileList.Remove(fileList[i]);
-				}
-			}
-			PlayerTrails.Logger.LogMessage("~~ Discovered " + fileList.Count.ToString() + " valid textures ~~");
-			foreach (string file in fileList)
-			{	
-			PlayerTrails.Logger.LogMessage(file);
-			}
-
-			// Assign to a new panel
-				// Grab blank panel
-			RawImage = transform.Find("Canvas/MaterialPage/Textures/TexturesPanel/ContentFrame/RawImage").gameObject.GetComponent(typeof(Image)) as Image;
-				// Create blank list of panels
-			List<Image> imageList = null;
-			for (int j = 0; j == fileList.Count(); j++)
-			{
-				Debug.Log("~~ IMAGE CREATION SANITY CHECK ~~");
-				Debug.Log("~~ imageList" + j.ToString() + " ~~");
-				Debug.Log(fileList[j]);
-				// Instantiate new panels and move template down
-				newPanel = Instantiate(RawImage.gameObject, RawImage.transform);
-                RawImage.transform.localPosition = new Vector3(RawImage.transform.localPosition.x, RawImage.transform.localPosition.y - 110);
-				// Add new image to image list
-                imageList.Add(newPanel.gameObject.GetComponent(typeof(Image)) as Image);
-				// Create sprites and Texture2Ds for image
-                Sprite panelSprite = new(){name = "panelSprite" + j.ToString()};
-				Texture2D panelTex = new(128, 128, TextureFormat.DXT5, false){name = "panelTex" + j.ToString()};
-				// Grab texture list from main plugin
-				panelTex.LoadImage(PlayerTrails.TextureGrab(fileList[j]));
-				//panelSprite = Sprite.Create(panelTex, Rect.zero, RawImage.transform.localPosition);
-				panelSprite = Sprite.Create(panelTex, new Rect(0f, 0f, (float)((Texture)panelTex).width, (float)((Texture)panelTex).height), RawImage.transform.localPosition);
-				// Apply
-                imageList[j].sprite = panelSprite;
-				newPanel.SetActive(true);
-				//imageList[j].gameObject.SetActive(true); Not helpful?
-
-			}
-
-			//Swatch
+			// Material Panel Content
+				// Grab images from folder
+			CreateFileList();
+				// Grab blank panel for textures panel.
+			rawImage = transform.Find("Canvas/MaterialPage/Textures/TexturesPanel/Viewport/ContentFrame/RawImage").gameObject.GetComponent(typeof(Image)) as Image;
+			rawImageGO = rawImage.gameObject;
+			rawImageBasePos = rawImageGO.transform.localPosition;
+				//Swatch
 			MaterialActiveSwitched();
-
-			// Attached trail setup
+				// Attached trail setup
 			Transform trailAnchor = transform.Find("TrailAnchor");
 			if (!trailAnchor)
 			{
@@ -176,6 +138,24 @@ namespace JalexInteractive
 			} else
 			{
 				PlayerTrails.Logger.LogError("Body not found for trail reference");
+			}
+		}
+		public static void CreateFileList()
+		{
+			string[] filesRaw = Directory.GetFiles(PlayerTrails.basePath);
+			fileList = [.. filesRaw];
+			for (int i = 0; i < fileList.Count; i++)
+			{
+				string extension = Path.GetExtension(fileList[i].ToLower());
+				if (extension != ".png" && extension != ".jpg" && extension != ".jpeg")
+				{
+					fileList.Remove(fileList[i]);
+				}
+			}
+			PlayerTrails.Logger.LogMessage("~~ Discovered " + fileList.Count.ToString() + " valid textures ~~");
+			foreach (string file in fileList)
+			{	
+				PlayerTrails.Logger.LogMessage(file);
 			}
 		}
 		public void ColourFlip(Text flipMe, bool onOff)
@@ -425,6 +405,53 @@ namespace JalexInteractive
 			t_gv_m.text = s_g_m.value.ToString();
 			t_bv_m.text = s_b_m.value.ToString();
 			t_av_m.text = s_a_m.value.ToString();
+		}
+		public static void TextureSwitch (string newmat)
+		{
+			PlayerTrails.trailTex.LoadImage(PlayerTrails.TextureGrab(newmat));
+			string[] split = newmat.Split('\\');
+			string cfgUpdate = split.Last();
+			PlayerTrails.cfg_trailTex.Value = cfgUpdate;
+		}
+		public void StartLoadPanelImages()
+		{
+			((MonoBehaviour)this).StartCoroutine(LoadPanelImages());
+		}
+		private IEnumerator LoadPanelImages()
+		{
+			CreateFileList();
+			// Check if run previously, if so delete old panels
+			bool isNullOrEmpty = imageList?.Any() != true;
+			if (!isNullOrEmpty)
+			{
+				foreach (Image img in imageList)
+				{
+					Destroy(img.gameObject);
+				}
+				imageList.Clear();
+				rawImageGO.transform.localPosition = rawImageBasePos;
+			}
+			for (int k = 0; k < fileList.Count; k++)
+			{
+				// Instantiate new panels and move template down
+				newPanel = Instantiate(rawImageGO, rawImageGO.transform.parent.transform);
+				// Add new image to image list
+				Image newPanelImage = newPanel.GetComponent(typeof(Image)) as Image;
+                imageList.Add(newPanelImage);
+				// Create sprites and Texture2Ds for image
+				Texture2D panelTex = new(128, 128, TextureFormat.DXT5, false){name = "panelTex" + k.ToString()};
+				panelTex.LoadImage(PlayerTrails.TextureGrab(fileList[k]));
+                Sprite panelSprite = Sprite.Create(panelTex, new Rect(0f, 0f, (float)((Texture)panelTex).width, (float)((Texture)panelTex).height), rawImage.transform.localPosition);
+				panelSprite.name = "panelSprite" + k.ToString();
+				// Apply
+                imageList[k].sprite = panelSprite;
+				Button buttonClick = newPanel.GetComponent(typeof(Button)) as Button;
+				string sendURL = fileList[k];
+				buttonClick.onClick.AddListener(()=>TextureSwitch(sendURL));
+				newPanel.SetActive(true);
+			}
+			LayoutRebuilder.ForceRebuildLayoutImmediate(rawImageGO.transform.parent.transform as RectTransform);
+			yield return null;
 		}
 		public void PropertiesUpdate(int property) // 0-Time | 1-Start width | 2-End Width
 		{
