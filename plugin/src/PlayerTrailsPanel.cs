@@ -17,7 +17,6 @@ namespace JalexInteractive
 		public static Image rawImage;
 		public static GameObject rawImageGO;
 		public static Vector3 rawImageBasePos;
-		//public static GameObject ContentFrame;
 		public static GameObject newPanel = null;
 		public static List<string> fileList;
 		public static List<Image> imageList = [];

@@ -226,6 +226,8 @@ namespace JalexInteractive
                 // If on Main Menu (because otherwise it won't trigger there) or not the active scene
                 if (activeScene.name == "MainMenu3" | activeScene != SceneManager.GetActiveScene())
                     {
+                        //Clean up old panel
+                        PlayerTrailsPanel.imageList.Clear();
                         // If it was option B, change spawned to false and reset active scene
                         if (activeScene != SceneManager.GetActiveScene()) {spawnedThisScene = false;}
                         activeScene = SceneManager.GetActiveScene();
