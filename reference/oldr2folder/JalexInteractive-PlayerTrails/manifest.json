@@ -1,0 +1,10 @@
+{
+    "name": "PlayerTrails",
+    "author": "JalexInteractive",
+    "version_number": "1.0.0",
+    "description": "Customisable player trails for H3VR.",
+    "website_url": "https://github.com/JalexInteractive/PlayerTrails",
+    "dependencies": [
+        "BepInEx-BepInExPack_H3VR-5.4.1700"
+    ]
+}

@@ -34,7 +34,8 @@ bld/
 
 # Custom
 reference/
-SentToR2.bat
+SendToR2.bat
+BundleGrab.bat
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
