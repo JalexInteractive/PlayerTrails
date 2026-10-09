@@ -24,7 +24,7 @@ That's right! I've included a few textures by default but you can also add your 
 In here you'll find the existing examples but drop any PNG or JPG image into that folder and the mod should be able to pick it up. Then you can simply change the mod configs via r2 or the included mod options panel to your new image and there you have it, your custom trail is now in game!
 
 ## This is all pretty neat, how can I say thanks!
-I'm around on the main H3VR and related modding Discords so if you like the mod, do let me know! If you're feeling totally baller high roller swag you can also leave me a tip on my [Ki-Fi](https://ko-fi.com/jalexinteractive)
+I'm around on the main H3VR and related modding Discords so if you like the mod, do let me know! If you're feeling totally baller high roller swag you can also leave me a tip on my [Ko-Fi](https://ko-fi.com/jalexinteractive)
 
 ## Any final words?
 If the idea gets enough interest, maybe I could add in some picatinny attachments to trail up your guns. Let me know if you'd be interested!
