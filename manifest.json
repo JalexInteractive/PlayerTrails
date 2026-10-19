@@ -1,7 +1,7 @@
 {
     "name": "PlayerTrails",
     "author": "JalexInteractive",
-    "version_number": "1.0.0",
+    "version_number": "1.0.1",
     "description": "Customisable player trails for H3VR.",
     "website_url": "https://github.com/JalexInteractive/PlayerTrails",
     "dependencies": [
